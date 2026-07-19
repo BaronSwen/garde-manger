@@ -59,6 +59,15 @@ input.search{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8p
 .cookform .u{color:var(--gris);font-size:.75rem;width:52px}
 .cookform .send{margin-top:8px;width:100%;padding:10px;border:0;border-radius:8px;background:var(--vert);color:#fff;font-weight:bold;cursor:pointer}
 .cookform .hint{font-size:.7rem;color:var(--gris);margin-bottom:8px}
+.idee{background:linear-gradient(135deg,#2E5A3E,#3d7a54);border-radius:12px;padding:14px;margin-bottom:12px;color:#fff}
+.idee h3{font-size:.95rem;margin-bottom:8px}
+.idee .btns{display:flex;gap:8px}
+.idee button{flex:1;padding:10px;border:0;border-radius:8px;font-weight:bold;font-size:.82rem;cursor:pointer;background:#fff;color:var(--vert)}
+.idee .result{background:rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:.85rem;line-height:1.5}
+.idee .result b{color:#FFE599}
+.idee .kcalline{font-size:.78rem;opacity:.9;margin-top:6px}
+.idee .prep{font-size:.78rem;opacity:.92;margin-top:8px;border-top:1px solid rgba(255,255,255,.25);padding-top:8px}
+.idee .askbtn{margin-top:10px;width:100%;background:#FFE599;color:#5a4a10}
 .note{background:#EAF2FB;border-radius:8px;padding:9px 12px;font-size:.75rem;color:#33506b;margin-bottom:10px}
 .vide{text-align:center;color:var(--gris);padding:30px 10px;font-size:.85rem}
 </style></head><body>
@@ -80,7 +89,12 @@ input.search{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8p
 <div id="courses"></div>
 </section>
 <section class="tab" id="t2">
-<div class="note">Recettes validées · macros par personne · ajuste le nombre de convives (2-6). Le bouton « Cuisinée ce soir » permet de corriger les quantités réellement utilisées avant envoi — le stock sera ajusté à la prochaine synchro de Claude.</div>
+<div class="idee">
+<h3>✨ Idée express avec le stock</h3>
+<div class="btns"><button onclick="genIdee()">Proposer un repas</button><button onclick="genIdee()" id="rebtn" style="display:none">🎲 Autre idée</button></div>
+<div id="ideeout"></div>
+</div>
+<div class="note">Recettes validées · macros par personne · convives 2-6 · « Cuisinée ce soir » ajuste le stock via Claude.</div>
 <div id="recs"></div>
 </section>
 </main>
@@ -90,8 +104,9 @@ const COURSES=[{"nom": "Basse côte", "cat": "Protéines", "unite": "g"}, {"nom"
 const RECS=[{"nom": "Curry de dinde aux lentilles corail", "kcal": 500, "mac": {"p": 50, "g": 55, "l": 5}, "temps": "30 min", "statut": "Validée", "ing": [{"lbl": "Filet de dinde", "inv": "Filet de dinde", "q": 300, "u": "g"}, {"lbl": "Lentilles corail (sec)", "inv": "Lentilles corail (Carrefour)", "q": 260, "u": "g"}, {"lbl": "Courgette", "inv": "Courgettes (Carrefour)", "q": 250, "u": "g"}, {"lbl": "Poivron rouge", "inv": "Poivrons rouges", "q": 190, "u": "g"}, {"lbl": "Champignons", "inv": "Champignons de Paris blancs", "q": 200, "u": "g"}, {"lbl": "Sauce Tomacouli", "inv": "Sauce Tomacouli basilic (Panzani)", "q": 400, "u": "g"}, {"lbl": "Skyr (topping)", "inv": "Skyr nature 0% (Yoplait)", "q": 150, "u": "g"}], "epices": "Curry (2 cc), cumin (1 cc), curcuma (1 cc), gingembre, 2 gousses d'ail, 1 oignon, coriandre fraîche, sel, poivre", "etapes": ["Prépare tout : coupe la dinde en dés de 2-3 cm, émince l'oignon, hache l'ail. Coupe la courgette en demi-rondelles, le poivron en lanières, émince les champignons. Rince les lentilles corail à l'eau froide jusqu'à ce que l'eau soit claire.", "Chauffe une grande sauteuse à feu moyen-vif, à sec. Fais revenir l'oignon 2-3 min, puis ajoute la dinde et saisis-la 4-5 min en remuant, jusqu'à ce qu'elle soit dorée sur toutes les faces.", "Ajoute l'ail, puis courgette, poivron et champignons. Fais sauter 5 min à feu moyen en remuant.", "Pousse le tout sur un côté de la sauteuse, verse les épices au centre et laisse-les chauffer 30 s à 1 min (ça libère les arômes), puis mélange tout.", "Verse la sauce Tomacouli + 400 ml d'eau chaude. Porte à frémissement, ajoute les lentilles, mélange bien.", "Couvre et laisse mijoter 15-18 min à feu doux, en remuant toutes les 5 min (les lentilles accrochent facilement au fond). Rajoute un peu d'eau si ça épaissit trop. C'est prêt quand les lentilles sont fondantes.", "Goûte et ajuste sel/poivre. Sers avec 50 g de skyr par assiette et de la coriandre ciselée."], "batch": "3-4 jours au frigo. Ça épaissit en refroidissant : rallonge d'un filet d'eau au réchauffage."}, {"nom": "Traybake dinde, pommes de terre rôties & légumes", "kcal": 500, "mac": {"p": 50, "g": 60, "l": 3}, "temps": "40 min", "statut": "Validée", "ing": [{"lbl": "Pommes de terre", "inv": "Pomme de terre", "q": 900, "u": "g"}, {"lbl": "Filet de dinde", "inv": "Filet de dinde", "q": 500, "u": "g"}, {"lbl": "Haricots verts", "inv": "Haricots verts (Carrefour)", "q": 300, "u": "g"}, {"lbl": "Poivron rouge", "inv": "Poivrons rouges", "q": 190, "u": "g"}, {"lbl": "Courgette", "inv": "Courgettes (Carrefour)", "q": 250, "u": "g"}, {"lbl": "Skyr (sauce)", "inv": "Skyr nature 0% (Yoplait)", "q": 150, "u": "g"}], "epices": "Paprika (1 cc), thym (1 cc), romarin (1 cc), 3 gousses d'ail, persil, ½ citron, sel, poivre", "etapes": ["Préchauffe le four à 200 °C chaleur tournante. Lave les pommes de terre et coupe-les en cubes de 2 cm, avec la peau.", "Dans un grand saladier, mélange les cubes avec paprika, thym, romarin, 2 gousses d'ail hachées, sel et poivre, pour bien les enrober.", "Étale-les sur une plaque couverte de papier cuisson, sans les superposer. Enfourne 15 min.", "Pendant ce temps : coupe la dinde en gros dés de 3-4 cm, équeute les haricots verts, coupe le poivron en lanières et la courgette en demi-rondelles épaisses.", "Sors la plaque, ajoute dinde et légumes par-dessus, mélange rapidement. Remets au four 20-25 min, en retournant tout à mi-cuisson.", "Vérifie la cuisson : la dinde doit être blanche à cœur (coupe un dé pour contrôler), les pommes de terre dorées et tendres à la pointe du couteau.", "Sauce express : mélange le skyr avec 1 gousse d'ail pressée, le persil ciselé, le jus du ½ citron, sel, poivre. Sers à part ou nappe à l'assiette."], "batch": "3-4 jours au frigo. Réchauffe au four ou à la poêle (le micro-ondes ramollit les pommes de terre)."}, {"nom": "Boulettes de bœuf, sauce skyr-roquefort", "kcal": 502, "mac": {"p": 36, "g": 47, "l": 21}, "temps": "35 min", "statut": "Validée", "ing": [{"lbl": "Viande hachée", "inv": "Viande hachée de bœuf", "q": 300, "u": "g"}, {"lbl": "Pommes de terre", "inv": "Pomme de terre", "q": 700, "u": "g"}, {"lbl": "Courgette", "inv": "Courgettes (Carrefour)", "q": 250, "u": "g"}, {"lbl": "Haricots verts", "inv": "Haricots verts (Carrefour)", "q": 250, "u": "g"}, {"lbl": "Skyr", "inv": "Skyr nature 0% (Yoplait)", "q": 200, "u": "g"}, {"lbl": "Roquefort (hors stock)", "inv": null, "q": 65, "u": "g"}], "epices": "1 gousse d'ail, ½ oignon, muscade, ciboulette, persil, poivre (sale très peu : le roquefort est déjà salé)", "etapes": ["Dans un saladier, mélange la viande hachée avec le ½ oignon finement haché, l'ail pressé, le persil ciselé et du poivre. Forme 12 boulettes (4 par personne) en roulant entre tes paumes.", "Épluche les pommes de terre, coupe-les en cubes de 3 cm. Équeute les haricots verts. Coupe la courgette en rondelles.", "Lance la cuisson vapeur : pommes de terre 20-25 min, haricots verts 15 min, courgette les 10 dernières minutes (cuit-vapeur ou panier au-dessus d'une casserole d'eau frémissante).", "Pendant ce temps, chauffe une poêle antiadhésive à feu moyen-vif, à sec. Fais dorer les boulettes 8-10 min en les retournant régulièrement sur toutes les faces. Coupe-en une pour vérifier qu'elle n'est plus rosée à cœur.", "La sauce, à faire en dernier : dans une petite casserole à feu très doux, fais fondre le roquefort émietté avec 2-3 c. à soupe d'eau en remuant. Dès qu'il est fondu, retire du feu, attends 1 min, puis incorpore le skyr, une pointe de muscade et du poivre. Ne fais jamais bouillir : le skyr tournerait.", "Dresse les assiettes : légumes vapeur + boulettes, nappe de sauce, parsème de ciboulette."], "batch": "3-4 jours au frigo, sauce à part. Nappe au moment de servir : la sauce se réchauffe mal mélangée au plat."}, {"nom": "Sauté de porc mijoté aux champignons & poivrons", "kcal": 497, "mac": {"p": 37, "g": 54, "l": 11}, "temps": "40 min", "statut": "Validée", "ing": [{"lbl": "Sauté de porc", "inv": "Sauté de porc", "q": 450, "u": "g"}, {"lbl": "Pommes de terre", "inv": "Pomme de terre", "q": 700, "u": "g"}, {"lbl": "Champignons", "inv": "Champignons de Paris blancs", "q": 200, "u": "g"}, {"lbl": "Poivron rouge", "inv": "Poivrons rouges", "q": 190, "u": "g"}, {"lbl": "Courgette", "inv": "Courgettes (Carrefour)", "q": 250, "u": "g"}, {"lbl": "Oignon", "inv": "Oignon", "q": 1, "u": "pièce(s)"}, {"lbl": "Sauce Tomacouli", "inv": "Sauce Tomacouli basilic (Panzani)", "q": 400, "u": "g"}], "epices": "Paprika (1 cc), thym, 1 feuille de laurier, 2 gousses d'ail, persil, sel, poivre", "etapes": ["Prépare tout : coupe le porc en morceaux de 3-4 cm si besoin et éponge-les avec du papier absorbant (ils doreront mieux). Émince l'oignon, hache l'ail. Coupe les champignons en quartiers, le poivron en lanières, la courgette en demi-rondelles, les pommes de terre en cubes de 3 cm.", "Chauffe une cocotte à feu vif, à sec. Saisis les morceaux de porc 3-4 min pour les colorer sur toutes les faces, puis réserve-les dans une assiette.", "Baisse à feu moyen. Dans la même cocotte, fais suer l'oignon 2 min, ajoute l'ail, puis champignons, poivron et courgette. Fais sauter 5 min.", "Remets le porc avec son jus, verse la sauce Tomacouli + 200 ml d'eau. Ajoute paprika, thym, laurier, sel, poivre. Mélange.", "Ajoute les pommes de terre, mélange, couvre et laisse mijoter à feu doux 25-30 min en remuant 2-3 fois. Rallonge d'un peu d'eau si ça attache.", "C'est prêt quand pommes de terre et porc sont tendres à la pointe du couteau. Retire le laurier, parsème de persil ciselé."], "batch": "3-4 jours au frigo, se congèle très bien en portions individuelles."}];
 const CATCOL={"Protéines": "#F4CCCC", "Féculents/Glucides": "#FCE5CD", "Légumineuses": "#E6D7C3", "Légumes": "#D9EAD3", "Fruits": "#FFF2CC", "Produits laitiers": "#CFE2F3", "Matières grasses": "#FCE4EC", "Noix & oléagineux": "#E8D9B5", "Boissons": "#D0E0E3", "Snacks/Sucré": "#EAD1DC", "Épicerie sèche": "#FFE599", "Épices & condiments": "#F9CB9C", "Compléments / sport": "#B6D7A8", "Surgelés": "#D9D2E9"};
 const REPO='BaronSwen/garde-manger', SPATH='etat.json';
-let ETAT={coches:{},masques:[],retires:[],cuisines:[]};
+let ETAT={coches:{},masques:[],retires:[],cuisines:[],demandes:[]};
 let PERS=JSON.parse(localStorage.getItem('gm_pers')||'{}');
+let IDEE=null, IDEEPERS=3;
 let catSel="Toutes";
 function tab(i){document.querySelectorAll('nav button').forEach((b,j)=>b.classList.toggle('on',i==j));document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',i==j));}
 function chips(){
@@ -122,7 +137,7 @@ function configToken(){
 }
 function ensureToken(){if(getToken())return true;configToken();return !!getToken();}
 function setSync(ok){const b=document.getElementById('sync');if(!b)return;b.textContent=ok?'✓ synchronisé':'⏳ en attente de synchro';b.className=ok?'ok':'ko';}
-function normEtat(e){return Object.assign({coches:{},masques:[],retires:[],cuisines:[]},e||{});}
+function normEtat(e){return Object.assign({coches:{},masques:[],retires:[],cuisines:[],demandes:[]},e||{});}
 async function loadEtat(){
  const pend=localStorage.getItem('gm_pending');
  if(pend){ETAT=normEtat(JSON.parse(pend));renderCourses();await flushEtat();return;}
@@ -147,7 +162,7 @@ async function flushEtat(){
   let sha=null;
   const g=await fetch(api+'?ref=main&_='+Date.now(),{headers:h,cache:'no-store'});
   if(g.ok){sha=(await g.json()).sha;}
-  const body={message:'Etat app (courses/cuisines)',content:btoa(unescape(encodeURIComponent(JSON.stringify(ETAT)))),branch:'main'};
+  const body={message:'Etat app',content:btoa(unescape(encodeURIComponent(JSON.stringify(ETAT)))),branch:'main'};
   if(sha)body.sha=sha;
   const p=await fetch(api,{method:'PUT',headers:h,body:JSON.stringify(body)});
   if(p.ok){localStorage.removeItem('gm_pending');setSync(true);}
@@ -173,6 +188,48 @@ function renderCourses(){
  const n=vis.filter(o=>ETAT.coches[o.c.nom]).length;
  document.getElementById('cpt').textContent=vis.length?(vis.length-n)+' article(s) restant(s) sur '+vis.length:'';
  document.getElementById('cbadge').textContent=vis.length?'('+vis.length+')':'';
+}
+/* ---- Générateur d'idée ---- */
+function grams(x){const f={'g':1,'kg':1000,'ml':1,'L':1000}[x.u];return f?x.nb*x.cont*f:0;}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function genIdee(){
+ const pers=3;
+ const st=INV.filter(x=>x.nb>0&&typeof x.kcal==='number');
+ const prots=st.filter(x=>x.cat==='Protéines'&&grams(x)>=120*pers);
+ const fecs=st.filter(x=>(x.cat==='Féculents/Glucides'||x.cat==='Légumineuses')&&grams(x)>=100&&x.kcal>=70);
+ const legs=st.filter(x=>x.cat==='Légumes'&&grams(x)>=120*pers*0.6);
+ const sauces=st.filter(x=>x.cat==='Épices & condiments'&&x.kcal<=60&&grams(x)>=200);
+ if(!prots.length||!fecs.length||!legs.length){
+  document.getElementById('ideeout').innerHTML='<div class="result">Stock insuffisant pour composer un repas complet — demande directement à Claude.</div>';return;
+ }
+ const p=pick(prots), f=pick(fecs);
+ let l1=pick(legs), l2=null;
+ const legs2=legs.filter(x=>x.nom!==l1.nom); if(legs2.length&&Math.random()<0.7)l2=pick(legs2);
+ const s=sauces.length&&Math.random()<0.8?pick(sauces):null;
+ const pg=130, l1g=Math.min(180,Math.floor(grams(l1)/pers/5)*5), l2g=l2?Math.min(150,Math.floor(grams(l2)/pers/5)*5):0, sg=s?100:0;
+ let kc=pg/100*p.kcal + l1g/100*l1.kcal + (l2?l2g/100*l2.kcal:0) + (s?sg/100*s.kcal:0);
+ let fg=Math.round((500-kc)/f.kcal*100/5)*5;
+ fg=Math.max(40,Math.min(fg,350,Math.floor(grams(f)/pers/5)*5));
+ kc=Math.round(kc+fg/100*f.kcal);
+ const mode = s? 'mijoté' : (f.nom.toLowerCase().indexOf('pomme')>=0?'four':'poêlée');
+ let prep='';
+ if(mode==='mijoté')prep=`Saisis ${p.nom.toLowerCase()} à sec dans une cocotte, réserve. Fais revenir oignon/ail et les légumes 5 min, remets la protéine, verse ${s.nom.toLowerCase()} + un fond d'eau, ajoute ${f.nom.toLowerCase()} ${f.kcal>200?'(pense à la cuisson indiquée sur le paquet)':''} et laisse mijoter 20-30 min à couvert. Épices : paprika, thym ou curry.`;
+ else if(mode==='four')prep=`Four 200 °C : étale ${f.nom.toLowerCase()} en cubes épicés 15 min, puis ajoute ${p.nom.toLowerCase()} en morceaux et les légumes, et poursuis 20-25 min en retournant à mi-cuisson. Épices : paprika, romarin, ail.`;
+ else prep=`Cuis ${f.nom.toLowerCase()} selon le paquet. Poêle à sec : dore ${p.nom.toLowerCase()}, ajoute les légumes et fais sauter 6-8 min. Assemble et assaisonne (ail, herbes, sel, poivre).`;
+ IDEE={pers:pers,kcal:kc,items:[
+  {inv:p.nom,q:pg,u:'g'},{inv:f.nom,q:fg,u:'g'},{inv:l1.nom,q:l1g,u:'g'}]
+  .concat(l2?[{inv:l2.nom,q:l2g,u:'g'}]:[]).concat(s?[{inv:s.nom,q:sg,u:'g'}]:[])};
+ document.getElementById('rebtn').style.display='block';
+ document.getElementById('ideeout').innerHTML=`<div class="result">
+  <b>${p.nom}</b> (${pg} g/pers) · <b>${f.nom}</b> (${fg} g/pers) · <b>${l1.nom}</b> (${l1g} g/pers)${l2?' · <b>'+l2.nom+'</b> ('+l2g+' g/pers)':''}${s?' · <b>'+s.nom+'</b> ('+sg+' g/pers)':''}
+  <div class="kcalline">≈ ${kc} kcal/personne · quantités par personne, tout est en stock</div>
+  <div class="prep">${prep}</div>
+  <button class="askbtn" onclick="askClaude()">📨 Demander la recette détaillée à Claude</button></div>`;
+}
+function askClaude(){
+ if(!IDEE)return;
+ action(()=>{ETAT.demandes.push({type:'recette',date:new Date().toISOString().slice(0,10),kcal:IDEE.kcal,items:IDEE.items});});
+ alert('Demande envoyée ✓ Claude rédigera la recette complète à son prochain passage.');
 }
 /* ---- Recettes ---- */
 function persOf(ri){return PERS[ri]||3;}
