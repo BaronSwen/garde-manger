@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mon garde-manger</title>
+<style>
+:root{--vert:#2E5A3E;--fond:#F6F8F6;--carte:#fff;--txt:#222;--gris:#777}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--fond);color:var(--txt);padding-bottom:30px}
+header{background:var(--vert);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:10}
+header h1{font-size:1.15rem}header p{font-size:.72rem;opacity:.85;margin-top:2px}
+nav{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;position:sticky;top:52px;z-index:9}
+nav button{flex:1;padding:11px 4px;border:0;background:none;font-size:.9rem;font-weight:bold;color:var(--gris);cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:var(--vert);border-bottom-color:var(--vert)}
+main{max-width:760px;margin:0 auto;padding:12px}
+.tab{display:none}.tab.on{display:block}
+input.search{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8px;font-size:.95rem;margin-bottom:8px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}
+.chip{white-space:nowrap;padding:5px 11px;border-radius:14px;border:1px solid #bbb;background:#fff;font-size:.75rem;cursor:pointer}
+.chip.on{background:var(--vert);color:#fff;border-color:var(--vert)}
+.card{background:var(--carte);border-radius:10px;padding:10px 12px;margin-bottom:7px;box-shadow:0 1px 2px rgba(0,0,0,.07);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .l{flex:1;min-width:0}
+.card .nom{font-weight:bold;font-size:.92rem}
+.card .det{font-size:.75rem;color:var(--gris);margin-top:2px}
+.badge{font-size:.68rem;padding:2px 8px;border-radius:10px;display:inline-block;margin-top:3px}
+.qte{text-align:right;font-weight:bold;font-size:.95rem;white-space:nowrap}
+.qte small{display:block;font-weight:normal;color:var(--gris);font-size:.68rem}
+.alerte{border-left:4px solid #C0392B}
+.zero .nom{color:#C0392B}
+.courseitem{display:flex;align-items:center;gap:12px;background:#fff;border-radius:10px;padding:12px;margin-bottom:7px;box-shadow:0 1px 2px rgba(0,0,0,.07)}
+.courseitem input{width:22px;height:22px;accent-color:var(--vert);flex-shrink:0}
+.courseitem.checked .cnom{text-decoration:line-through;color:#aaa}
+.cnom{font-weight:bold;font-size:.95rem}
+.cdet{font-size:.75rem;color:var(--gris)}
+.compteur{text-align:center;color:var(--gris);font-size:.8rem;margin:6px 0 10px}
+.rec{background:#fff;border-radius:10px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.07);overflow:hidden}
+.rec summary{padding:13px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rec summary::-webkit-details-marker{display:none}
+.rec .rnom{font-weight:bold;font-size:.95rem}
+.rec .rmeta{font-size:.73rem;color:var(--gris);margin-top:3px}
+.rec .statut{font-size:.65rem;background:#FFF2CC;color:#8a6d1a;padding:3px 8px;border-radius:10px;white-space:nowrap}
+.rec .corps{padding:0 13px 13px;font-size:.85rem}
+.rec h4{color:var(--vert);font-size:.8rem;margin:10px 0 4px;text-transform:uppercase}
+.rec ul,.rec ol{padding-left:20px}.rec li{margin-bottom:3px}
+.note{background:#EAF2FB;border-radius:8px;padding:9px 12px;font-size:.75rem;color:#33506b;margin-bottom:10px}
+.vide{text-align:center;color:var(--gris);padding:30px 10px;font-size:.85rem}
+</style></head><body>
+<header><h1>🥫 Mon garde-manger</h1><p>Généré le 19/07/2026 — source : Inventaire_alimentaire.xlsx · Lecture seule, demande à Claude pour modifier</p></header>
+<nav>
+<button class="on" onclick="tab(0)">Inventaire</button>
+<button onclick="tab(1)">Courses <span id="cbadge"></span></button>
+<button onclick="tab(2)">Recettes</button>
+</nav>
+<main>
+<section class="tab on" id="t0">
+<input class="search" id="q" placeholder="Rechercher un aliment…" oninput="render()">
+<div class="chips" id="chips"></div>
+<div id="liste"></div>
+</section>
+<section class="tab" id="t1">
+<div class="note">Coche en magasin : l'état est mémorisé sur cet appareil. La liste se remet à jour quand Claude régénère l'app.</div>
+<div class="compteur" id="cpt"></div>
+<div id="courses"></div>
+</section>
+<section class="tab" id="t2">
+<div class="note">Recettes déjà cuisinées — dis à Claude « garde / retire [nom] » pour gérer cette liste. Toutes ~500 kcal/pers pour 3.</div>
+<div id="recs"></div>
+</section>
+</main>
+<script>
+const INV=[{"nom": "Skyr nature 0% (Yoplait)", "cat": "Produits laitiers", "nb": 1, "cont": 850, "u": "g", "seuil": 1, "qte": "850 g", "kcal": 57, "lieu": "Frigo"}, {"nom": "Macédoine de légumes (Carrefour)", "cat": "Légumes", "nb": 1, "cont": 130, "u": "g", "seuil": 1, "qte": "130 g", "kcal": 43, "lieu": "Placard"}, {"nom": "Purée Saveur d'autrefois (Carrefour)", "cat": "Féculents/Glucides", "nb": 5, "cont": 125, "u": "g", "seuil": 2, "qte": "625 g", "kcal": 77, "lieu": "Placard"}, {"nom": "Maïs sans sucres ajoutés (Carrefour)", "cat": "Légumes", "nb": 1, "cont": 130, "u": "g", "seuil": 1, "qte": "130 g", "kcal": 77, "lieu": "Placard"}, {"nom": "Sauce tomate Provençale (Carrefour)", "cat": "Épices & condiments", "nb": 0, "cont": 420, "u": "g", "seuil": 1, "qte": "0 g", "kcal": 48, "lieu": "Placard"}, {"nom": "Lentilles", "cat": "Légumineuses", "nb": 4, "cont": 130, "u": "g", "seuil": 1, "qte": "520 g", "kcal": "", "lieu": "Placard"}, {"nom": "Flageolets (Carrefour)", "cat": "Légumineuses", "nb": 1, "cont": 130, "u": "g", "seuil": 1, "qte": "130 g", "kcal": 78, "lieu": "Placard"}, {"nom": "Haricots rouges (Classic')", "cat": "Légumineuses", "nb": 1, "cont": 250, "u": "g", "seuil": 1, "qte": "250 g", "kcal": 111, "lieu": "Placard"}, {"nom": "Flageolets extra-fins (Carrefour)", "cat": "Légumineuses", "nb": 2, "cont": 265, "u": "g", "seuil": 1, "qte": "530 g", "kcal": 88, "lieu": "Placard"}, {"nom": "Haricots blancs (Classic)", "cat": "Légumineuses", "nb": 2, "cont": 265, "u": "g", "seuil": 1, "qte": "530 g", "kcal": 88, "lieu": "Placard"}, {"nom": "Maïs (Carrefour)", "cat": "Légumes", "nb": 4, "cont": 285, "u": "g", "seuil": 1, "qte": "1140 g", "kcal": 77, "lieu": "Placard"}, {"nom": "Haricots verts (Carrefour)", "cat": "Légumes", "nb": 6, "cont": 200, "u": "ml", "seuil": 1, "qte": "1200 ml", "kcal": 24, "lieu": "Placard"}, {"nom": "Petits pois carottes (Carrefour)", "cat": "Légumes", "nb": 2, "cont": 130, "u": "g", "seuil": 1, "qte": "260 g", "kcal": 50, "lieu": "Placard"}, {"nom": "Haricots verts (Carrefour)", "cat": "Légumes", "nb": 2, "cont": 110, "u": "g", "seuil": 1, "qte": "220 g", "kcal": 24, "lieu": "Placard"}, {"nom": "Pois chiches (Carrefour)", "cat": "Légumineuses", "nb": 1, "cont": 265, "u": "g", "seuil": "", "qte": "265 g", "kcal": 123, "lieu": "Placard"}, {"nom": "Pois chiches (Carrefour)", "cat": "Légumineuses", "nb": 2, "cont": 130, "u": "g", "seuil": 5, "qte": "260 g", "kcal": 118, "lieu": "Placard"}, {"nom": "Tendres Perles à l'Italienne (Tipiak)", "cat": "Féculents/Glucides", "nb": 3, "cont": 150, "u": "g", "seuil": 1, "qte": "450 g", "kcal": 123, "lieu": "Placard"}, {"nom": "Lentilles corail (Carrefour)", "cat": "Légumineuses", "nb": 2, "cont": 500, "u": "g", "seuil": 1, "qte": "1000 g", "kcal": 320, "lieu": "Placard"}, {"nom": "Pesto rouge (Carrefour)", "cat": "Épices & condiments", "nb": 1, "cont": 190, "u": "g", "seuil": "", "qte": "190 g", "kcal": 305, "lieu": "Placard"}, {"nom": "Pesto basilic-roquette (Carrefour)", "cat": "Épices & condiments", "nb": 2, "cont": 190, "u": "g", "seuil": "", "qte": "380 g", "kcal": 428, "lieu": "Placard"}, {"nom": "Sauce tomate Provençale (Carrefour)", "cat": "Épices & condiments", "nb": 1, "cont": 680, "u": "g", "seuil": "", "qte": "680 g", "kcal": 48, "lieu": "Placard"}, {"nom": "Nouilles Tom Yum crevette (Wai Wai)", "cat": "Féculents/Glucides", "nb": 1, "cont": 60, "u": "g", "seuil": "", "qte": "60 g", "kcal": 78, "lieu": "Placard"}, {"nom": "Nouilles poulet curry (Wai Wai)", "cat": "Féculents/Glucides", "nb": 1, "cont": 60, "u": "g", "seuil": "", "qte": "60 g", "kcal": 503, "lieu": "Placard"}, {"nom": "Muesli croustillant chocolat noir (Carrefour)", "cat": "Féculents/Glucides", "nb": 1, "cont": 750, "u": "g", "seuil": "", "qte": "750 g", "kcal": 441, "lieu": "Placard"}, {"nom": "Sauce Tomacouli basilic (Panzani)", "cat": "Épices & condiments", "nb": 1, "cont": 400, "u": "g", "seuil": "", "qte": "400 g", "kcal": 27, "lieu": "Placard"}, {"nom": "Purée de tomates saveur basilic (Carrefour)", "cat": "Épices & condiments", "nb": 1, "cont": 200, "u": "g", "seuil": "", "qte": "200 g", "kcal": 31, "lieu": "Placard"}, {"nom": "Toast crock' (Carrefour)", "cat": "Féculents/Glucides", "nb": 1, "cont": 125, "u": "g", "seuil": 1, "qte": "125 g", "kcal": 372, "lieu": "Placard"}, {"nom": "Basse côte", "cat": "Protéines", "nb": 0, "cont": 300, "u": "g", "seuil": "", "qte": "0 g", "kcal": 250, "lieu": "Congélateur"}, {"nom": "Filet de dinde", "cat": "Protéines", "nb": 1, "cont": 300, "u": "g", "seuil": "", "qte": "300 g", "kcal": 110, "lieu": "Congélateur"}, {"nom": "Filet mignon", "cat": "Protéines", "nb": 0, "cont": 300, "u": "g", "seuil": "", "qte": "0 g", "kcal": 120, "lieu": "Congélateur"}, {"nom": "Boudin noir", "cat": "Protéines", "nb": 0, "cont": 100, "u": "g", "seuil": "", "qte": "0 g", "kcal": 380, "lieu": "Congélateur"}, {"nom": "Cuisse de poulet", "cat": "Protéines", "nb": 0, "cont": 300, "u": "g", "seuil": "", "qte": "0 g", "kcal": 180, "lieu": "Congélateur"}, {"nom": "Roti de porc en tranche", "cat": "Protéines", "nb": 0, "cont": 300, "u": "g", "seuil": "", "qte": "0 g", "kcal": 180, "lieu": "Congélateur"}, {"nom": "Sauté de porc", "cat": "Protéines", "nb": 2, "cont": 300, "u": "g", "seuil": "", "qte": "600 g", "kcal": 145, "lieu": "Congélateur"}, {"nom": "Viande hachée de bœuf", "cat": "Protéines", "nb": 2, "cont": 300, "u": "g", "seuil": "", "qte": "600 g", "kcal": 170, "lieu": "Congélateur"}, {"nom": "Saumon", "cat": "Protéines", "nb": 2, "cont": 150, "u": "g", "seuil": "", "qte": "300 g", "kcal": 180, "lieu": "Congélateur"}, {"nom": "Requin", "cat": "Protéines", "nb": 1, "cont": 150, "u": "g", "seuil": "", "qte": "150 g", "kcal": 130, "lieu": "Congélateur"}, {"nom": "Œufs", "cat": "Protéines", "nb": 0, "cont": 20, "u": "g", "seuil": 3, "qte": "0 g", "kcal": 155, "lieu": "Frigo"}, {"nom": "Lardons fumés (Carrefour)", "cat": "Protéines", "nb": 0, "cont": 75, "u": "g", "seuil": "", "qte": "0 g", "kcal": 133, "lieu": "Frigo"}, {"nom": "Petites carottes (Priméale)", "cat": "Légumes", "nb": 1, "cont": 500, "u": "g", "seuil": 1, "qte": "500 g", "kcal": 39, "lieu": "Frigo"}, {"nom": "Champignons de Paris blancs", "cat": "Légumes", "nb": 1, "cont": 300, "u": "g", "seuil": 1, "qte": "300 g", "kcal": 22, "lieu": "Frigo"}, {"nom": "Poivrons rouges", "cat": "Légumes", "nb": 3, "cont": 190, "u": "g", "seuil": 1, "qte": "570 g", "kcal": 31, "lieu": "Frigo"}, {"nom": "Courgettes (Carrefour)", "cat": "Légumes", "nb": 4, "cont": 250, "u": "g", "seuil": 1, "qte": "1000 g", "kcal": 17, "lieu": "Frigo"}, {"nom": "Pomme de terre", "cat": "Féculents/Glucides", "nb": 1, "cont": 1, "u": "kg", "seuil": 1, "qte": "1 kg", "kcal": 77, "lieu": "Placard"}, {"nom": "Oignon", "cat": "Légumes", "nb": 6, "cont": 1, "u": "pièce(s)", "seuil": 1, "qte": "6 pièce(s)", "kcal": 40, "lieu": "Corbeille à fruits"}, {"nom": "Échalote", "cat": "Légumes", "nb": 5, "cont": 1, "u": "pièce(s)", "seuil": 1, "qte": "5 pièce(s)", "kcal": 72, "lieu": "Placard"}, {"nom": "Crevettes", "cat": "Protéines", "nb": 1, "cont": 500, "u": "g", "seuil": 1, "qte": "500 g", "kcal": 99, "lieu": "Congélateur"}, {"nom": "Crème liquide", "cat": "Produits laitiers", "nb": 2, "cont": 200, "u": "ml", "seuil": 1, "qte": "400 ml", "kcal": 290, "lieu": "Frigo"}, {"nom": "Riz basmati", "cat": "Féculents/Glucides", "nb": 1, "cont": 2, "u": "kg", "seuil": 1, "qte": "2 kg", "kcal": 350, "lieu": "Placard"}, {"nom": "Fromage de chèvre (Carrefour)", "cat": "Produits laitiers", "nb": 2, "cont": 1, "u": "pièce(s)", "seuil": 1, "qte": "2 pièce(s)", "kcal": 290, "lieu": "Frigo"}];
+const COURSES=[{"nom": "Sauce tomate Provençale (Carrefour)", "cat": "Épices & condiments", "reste": 0, "unite": "g"}, {"nom": "Basse côte", "cat": "Protéines", "reste": 0, "unite": "g"}, {"nom": "Filet mignon", "cat": "Protéines", "reste": 0, "unite": "g"}, {"nom": "Boudin noir", "cat": "Protéines", "reste": 0, "unite": "g"}, {"nom": "Cuisse de poulet", "cat": "Protéines", "reste": 0, "unite": "g"}, {"nom": "Roti de porc en tranche", "cat": "Protéines", "reste": 0, "unite": "g"}, {"nom": "Œufs", "cat": "Protéines", "reste": 0, "unite": "g"}, {"nom": "Lardons fumés (Carrefour)", "cat": "Protéines", "reste": 0, "unite": "g"}, {"nom": "Pomme de terre", "cat": "Féculents/Glucides", "reste": 1, "unite": "kg"}];
+const RECS=[{"nom": "Curry de dinde aux lentilles corail", "kcal": 500, "prot": "45-48 g", "temps": "30 min", "statut": "à valider", "ing": ["Filet de dinde 300 g", "Lentilles corail 260 g (sec)", "Courgette 250 g", "Poivron rouge 190 g", "Champignons 200 g", "Sauce Tomacouli 400 g", "Skyr 150 g (topping)"], "epices": "Curry, cumin, curcuma, gingembre, ail, coriandre, oignon", "etapes": ["Revenir oignon + dinde en dés", "Ajouter légumes 5 min", "Torréfier les épices 1 min", "Sauce + 400 ml d'eau + lentilles rincées", "Mijoter 15-18 min couvert", "Servir avec skyr et coriandre"]}, {"nom": "Traybake dinde, pommes de terre rôties & légumes", "kcal": 500, "prot": "45-47 g", "temps": "40 min", "statut": "à valider", "ing": ["Pommes de terre 900 g", "Filet de dinde 500 g", "Haricots verts 300 g", "Poivron rouge 190 g", "Courgette 250 g", "Skyr 150 g (sauce)"], "epices": "Paprika, thym, romarin, ail, persil, citron", "etapes": ["Four 200°C ; PDT en cubes épicées, 15 min", "Ajouter dinde + légumes sur la plaque", "20-25 min en retournant à mi-cuisson", "Sauce : skyr + ail + persil + citron"]}, {"nom": "Boulettes de bœuf, sauce skyr-roquefort", "kcal": 502, "prot": "~35 g", "temps": "35 min", "statut": "à valider", "ing": ["Viande hachée 300 g", "Pommes de terre 700 g", "Courgette 250 g", "Haricots verts 250 g", "Skyr 200 g", "Roquefort 65 g (hors stock)"], "epices": "Ail, oignon, muscade, ciboulette, thym, poivre", "etapes": ["Boulettes : viande + ail/oignon/persil, poêle à sec", "PDT + haricots vapeur 20 min, courgette +10 min", "Sauce : fondre roquefort à feu très doux, hors feu + skyr + muscade", "Dresser et napper"]}, {"nom": "Sauté de porc mijoté aux champignons & poivrons", "kcal": 497, "prot": "~35 g", "temps": "40 min", "statut": "à valider", "ing": ["Sauté de porc 450 g", "Pommes de terre 700 g", "Champignons 200 g", "Poivron rouge 190 g", "Courgette 250 g", "Oignon 1", "Sauce Tomacouli 400 g"], "epices": "Paprika, thym, laurier, ail, persil", "etapes": ["Saisir le porc à sec, réserver", "Suer oignon + ail, sauter les légumes 5 min", "Remettre porc + sauce + 200 ml d'eau + épices", "PDT en cubes, mijoter 25-30 min couvert", "Persil au service"]}];
+const CATCOL={"Protéines": "#F4CCCC", "Féculents/Glucides": "#FCE5CD", "Légumineuses": "#E6D7C3", "Légumes": "#D9EAD3", "Fruits": "#FFF2CC", "Produits laitiers": "#CFE2F3", "Matières grasses": "#FCE4EC", "Noix & oléagineux": "#E8D9B5", "Boissons": "#D0E0E3", "Snacks/Sucré": "#EAD1DC", "Épicerie sèche": "#FFE599", "Épices & condiments": "#F9CB9C", "Compléments / sport": "#B6D7A8", "Surgelés": "#D9D2E9"};
+let catSel="Toutes";
+function tab(i){document.querySelectorAll('nav button').forEach((b,j)=>b.classList.toggle('on',i==j));document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',i==j));}
+function chips(){
+ const cats=["Toutes",...new Set(INV.filter(x=>x.nb>0).map(x=>x.cat).filter(Boolean))];
+ document.getElementById('chips').innerHTML=cats.map(c=>`<span class="chip ${c==catSel?'on':''}" onclick="catSel='${c}';chips();render()">${c}</span>`).join('');
+}
+function render(){
+ const q=document.getElementById('q').value.toLowerCase();
+ let items=INV.filter(x=>x.nom.toLowerCase().includes(q));
+ if(catSel!="Toutes")items=items.filter(x=>x.cat==catSel);
+ items.sort((a,b)=>(b.nb>0)-(a.nb>0)||a.nom.localeCompare(b.nom));
+ document.getElementById('liste').innerHTML=items.map(x=>{
+  const zero=x.nb<=0, col=CATCOL[x.cat]||'#eee';
+  const alerte=!zero && x.seuil!=='' && (x.nb*(parseFloat(x.cont)||1))<=x.seuil;
+  return `<div class="card ${alerte?'alerte':''} ${zero?'zero':''}">
+   <div class="l"><div class="nom">${x.nom}</div>
+   <div class="det">${x.kcal!==''?x.kcal+' kcal/100g · ':''}${x.lieu}</div>
+   <span class="badge" style="background:${col}">${x.cat}</span></div>
+   <div class="qte">${zero?'—':x.qte}<small>${zero?'épuisé':x.nb+' × '+x.cont+' '+x.u}</small></div></div>`;
+ }).join('')||'<div class="vide">Aucun résultat</div>';
+}
+function renderCourses(){
+ const done=JSON.parse(localStorage.getItem('gm_checked')||'{}');
+ document.getElementById('courses').innerHTML=COURSES.map((c,i)=>{
+  const k='c'+i, ch=done[k]?'checked':'';
+  return `<label class="courseitem ${ch}"><input type="checkbox" ${ch} onchange="toggle('${k}',this)">
+  <div><div class="cnom">${c.nom}</div><div class="cdet">${c.cat}${c.unite?' · en '+c.unite:''}</div></div></label>`;
+ }).join('')||'<div class="vide">🎉 Rien à acheter</div>';
+ const n=Object.values(done).filter(Boolean).length;
+ document.getElementById('cpt').textContent=COURSES.length? (COURSES.length-n)+' article(s) restant(s) sur '+COURSES.length : '';
+ document.getElementById('cbadge').textContent=COURSES.length?'('+COURSES.length+')':'';
+}
+function toggle(k,el){
+ const done=JSON.parse(localStorage.getItem('gm_checked')||'{}');
+ done[k]=el.checked; localStorage.setItem('gm_checked',JSON.stringify(done));
+ el.closest('.courseitem').classList.toggle('checked',el.checked); renderCourses();
+}
+function renderRecs(){
+ document.getElementById('recs').innerHTML=RECS.map(r=>`<details class="rec"><summary>
+  <div><div class="rnom">${r.nom}</div><div class="rmeta">${r.kcal} kcal/pers · ${r.prot} protéines · ${r.temps}</div></div>
+  <span class="statut">${r.statut}</span></summary>
+  <div class="corps"><h4>Ingrédients (3 pers)</h4><ul>${r.ing.map(i=>'<li>'+i+'</li>').join('')}</ul>
+  <h4>Épices & hors stock</h4><p>${r.epices}</p>
+  <h4>Préparation</h4><ol>${r.etapes.map(e=>'<li>'+e+'</li>').join('')}</ol></div></details>`).join('');
+}
+chips();render();renderCourses();renderRecs();
+</script></body></html>
