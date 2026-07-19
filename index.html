@@ -68,6 +68,7 @@ input.search{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8p
 .idee .kcalline{font-size:.78rem;opacity:.9;margin-top:6px}
 .idee .prep{font-size:.78rem;opacity:.92;margin-top:8px;border-top:1px solid rgba(255,255,255,.25);padding-top:8px}
 .idee .askbtn{margin-top:10px;width:100%;background:#FFE599;color:#5a4a10}
+.idee .cookform{color:var(--txt)}
 .note{background:#EAF2FB;border-radius:8px;padding:9px 12px;font-size:.75rem;color:#33506b;margin-bottom:10px}
 .vide{text-align:center;color:var(--gris);padding:30px 10px;font-size:.85rem}
 </style></head><body>
@@ -224,12 +225,34 @@ function genIdee(){
   <b>${p.nom}</b> (${pg} g/pers) · <b>${f.nom}</b> (${fg} g/pers) · <b>${l1.nom}</b> (${l1g} g/pers)${l2?' · <b>'+l2.nom+'</b> ('+l2g+' g/pers)':''}${s?' · <b>'+s.nom+'</b> ('+sg+' g/pers)':''}
   <div class="kcalline">≈ ${kc} kcal/personne · quantités par personne, tout est en stock</div>
   <div class="prep">${prep}</div>
-  <button class="askbtn" onclick="askClaude()">📨 Demander la recette détaillée à Claude</button></div>`;
+  <button class="askbtn" onclick="askClaude()">📨 Demander la recette détaillée à Claude</button>
+  <button class="askbtn" style="background:#fff;color:var(--vert)" onclick="openCookIdee()">🍳 On l'a cuisinée — ajuster le stock</button>
+  <div class="cookform" id="cookIdee" style="display:none"></div></div>`;
 }
 function askClaude(){
  if(!IDEE)return;
  action(()=>{ETAT.demandes.push({type:'recette',date:new Date().toISOString().slice(0,10),kcal:IDEE.kcal,items:IDEE.items});});
  alert('Demande envoyée ✓ Claude rédigera la recette complète à son prochain passage.');
+}
+function openCookIdee(){
+ if(!IDEE)return;
+ const f=document.getElementById('cookIdee');
+ if(f.style.display!=='none'){f.style.display='none';return;}
+ f.innerHTML='<div class="hint">Quantités TOTALES utilisées (pré-remplies pour '+IDEE.pers+' pers. — corrige si besoin, 0 si non utilisé) :</div>'+
+  IDEE.items.map((i,k)=>`<div class="row"><span>${i.inv}</span><input type="number" min="0" step="any" id="ci_${k}" value="${i.q*IDEE.pers}"><span class="u">${i.u}</span></div>`).join('')+
+  '<button class="send" onclick="sendCookIdee()">Valider — ajuster le stock</button>';
+ f.style.display='block';
+}
+function sendCookIdee(){
+ const used=[];
+ IDEE.items.forEach((i,k)=>{
+  const v=parseFloat(document.getElementById('ci_'+k).value)||0;
+  if(v>0)used.push({inv:i.inv,q:v,u:i.u});
+ });
+ if(!used.length){alert('Aucune quantité renseignée.');return;}
+ action(()=>{ETAT.cuisines.push({r:'Idée express',pers:IDEE.pers,date:new Date().toISOString().slice(0,10),ing:used});});
+ document.getElementById('cookIdee').style.display='none';
+ alert('Enregistré ✓ Le stock sera ajusté à la prochaine synchro de Claude.');
 }
 /* ---- Recettes ---- */
 function persOf(ri){return PERS[ri]||3;}
